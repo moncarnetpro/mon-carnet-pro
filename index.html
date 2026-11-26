@@ -737,12 +737,12 @@ function vStock(){
   <div class="btns" style="margin:10px 0"><button class="btn small" data-act="entree">+ Réception / ajout au stock</button><button class="btn small sec" data-act="perso">Ma conso perso</button><button class="btn small sec" data-act="sortie">− Sortie (cadeau…)</button><button class="btn small ghost" data-act="expo">Mettre en exposition</button><button class="btn small ghost" data-act="newprod">+ Nouveau produit</button></div>
   <p class="note">${nb(CALC.pieces)} pièces vendables · ${eur(CALC.value)} au prix d'achat${CALC.expoPcs?` · ${nb(CALC.expoPcs)} en exposition (${eur(CALC.expoVal)})`:""}</p>`;
   if(f==="cof"){ return h+vCoffrets(true); }
-  if(f==="perso"){ const isP=m=>m.type==="Sortie"&&/perso|famille/i.test(String(m.motif||"")); const all=[...S.mvts.values()].filter(isP).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  if(f==="perso"){ const isP=isPersoMvt; const allE=[...S.mvts.entries()].filter(([,m])=>isP(m)).sort((a,b)=>String(b[1].date).localeCompare(String(a[1].date))); const all=allE.map(x=>x[1]);
     const mo=today().slice(0,7), y=today().slice(0,4); const val=l=>l.reduce((t,m)=>t+(Number(m.qty)||0)*((BYCODE.get(String(m.code||"").toUpperCase())||{}).pa||0),0);
     const lm=all.filter(m=>String(m.date).startsWith(mo)), ly=all.filter(m=>String(m.date).startsWith(y));
     return h+`<div class="tiles"><div class="tile"><b class="money">${eur(val(lm))}</b><span>Conso perso ce mois (prix d'achat)</span></div><div class="tile"><b class="money">${eur(val(ly))}</b><span>Depuis janvier</span></div></div>
     <div class="btns" style="margin:10px 0"><button class="btn small" data-act="perso">+ Ajouter une conso perso</button></div>
-    ${all.length?`<div class="list">${all.map(m=>{const p=BYCODE.get(String(m.code||"").toUpperCase())||{}; return `<div class="row" style="cursor:default"><span class="code">${esc(m.code)}</span><span class="grow"><span class="t1">${esc(p.n||m.code)}</span><br><span class="t2">${fdate(m.date)} · ${esc(m.motif)}${m.note?" · "+esc(m.note):""}</span></span><span class="right"><b>× ${nb(m.qty)}</b><br><span class="t2 money">${eur((Number(m.qty)||0)*(p.pa||0))}</span></span></div>`;}).join("")}</div>`:`<div class="card empty">Aucune conso perso enregistrée.</div>`}`; }
+    ${all.length?`<p class="note">Appuie sur une ligne pour la modifier ou la supprimer.</p><div class="list">${allE.map(([id,m])=>{const p=BYCODE.get(String(m.code||"").toUpperCase())||{}; return `<button class="row" data-act="editmvt" data-id="${esc(id)}"><span class="code">${esc(m.code)}</span><span class="grow"><span class="t1">${esc(p.n||m.code)}</span><br><span class="t2">${fdate(m.date)} · ${esc(m.motif)}${m.note?" · "+esc(m.note):""}</span></span><span class="right"><b>× ${nb(m.qty)}</b><br><span class="t2 money">${eur((Number(m.qty)||0)*(p.pa||0))}</span></span></button>`;}).join("")}</div>`:`<div class="card empty">Aucune conso perso enregistrée.</div>`}`; }
   if(f==="expo"){ const ex=[...CALC.expo.entries()].filter(([k,q])=>q>0&&BYCODE.get(k)).filter(([k])=>!q||q.split(" ").every(w=>norm(k+" "+BYCODE.get(k).n+" "+BYCODE.get(k).eq).includes(w)));
     return h+(ex.length?`<p class="note">Produits réservés à ton stand : ils ne sont ni vendables ni comptés dans ton stock disponible.</p><div class="list">${ex.map(([k,q])=>{const p=BYCODE.get(k); return `<div class="row" style="cursor:default;flex-wrap:wrap"><span class="code">${esc(p.c)}</span><span class="grow"><span class="t1">${esc(p.n)}</span><br><span class="t2">${esc(p.eq||p.k||"")}</span></span><b>× ${q}</b><span class="btns" style="width:100%;justify-content:flex-end;margin-top:6px"><button class="btn small" data-act="expoback" data-code="${esc(p.c)}">Remettre en stock</button><button class="btn small ghost" data-act="expoend" data-code="${esc(p.c)}">Fin d'expo (vide, abîmé…)</button></span></div>`;}).join("")}</div>`:`<div class="card empty">Aucun produit en exposition. Utilise « Mettre en exposition » pour réserver des produits à ton stand.</div>`); }
   let extra="";
@@ -1072,6 +1072,8 @@ function sheetProduct(code){
   <div class="card"><div style="margin-bottom:10px">${stockPill(code)}${(CALC.expo.get(code)||0)>0?` <span class="pill" style="background:var(--champ);color:var(--champ-ink)">+ ${CALC.expo.get(code)} en exposition (non vendable)</span>`:""}</div><dl class="kv"><dt>Gamme</dt><dd>${esc(p.g)}</dd><dt>Catégorie</dt><dd>${esc(p.k)}</dd>${p.f?`<dt>Format</dt><dd>${esc(p.f)}</dd>`:""}<dt>Prix de vente</dt><dd class="money">${p.pv!=null?eur(p.pv):"—"}</dd><dt>Prix d'achat</dt><dd class="money">${p.pa!=null?eur(p.pa):"—"}</dd><dt>Gain par vente</dt><dd class="money gaintxt">${(p.pv!=null&&p.pa!=null)?eur(p.pv-p.pa):"—"}</dd><dt>Points</dt><dd>${p.pt!=null?nb(p.pt):"—"}</dd><dt>Seuil d'alerte</dt><dd>${nb(s.seuil||0)}</dd></dl></div>
   <div class="btns"><button class="btn" data-act="sellthis" data-code="${esc(code)}">Vendre</button><button class="btn sec" data-act="entree" data-code="${esc(code)}">+ Ajouter au stock</button><button class="btn ghost" data-act="perso" data-code="${esc(code)}">Ma conso perso</button><button class="btn ghost" data-act="expo" data-code="${esc(code)}">Mettre en exposition</button>${(CALC.expo.get(code)||0)>0?`<button class="btn ghost" data-act="expoback" data-code="${esc(code)}">Retour d'exposition</button>`:""}<button class="btn ghost" data-act="seuil" data-code="${esc(code)}">Seuil d'alerte</button><button class="btn ghost" data-act="editprod" data-code="${esc(code)}">Modifier le produit</button></div>
   ${p.mod?`<p class="note">Prix ou infos modifiés par toi.</p>`:""}${p.neuf?`<p class="note">Produit ajouté par toi.</p>`:""}
+  ${(()=>{ const ml=[...S.mvts.entries()].filter(([,m])=>String(m.code||"").toUpperCase()===code).sort((a,b)=>String(b[1].date).localeCompare(String(a[1].date))||String(b[1].created||"").localeCompare(String(a[1].created||""))).slice(0,8);
+    return ml.length?`<div class="sect">Derniers mouvements de stock</div><p class="note" style="margin-top:0">Une erreur ? Appuie sur la ligne pour la corriger ou la supprimer.</p>${mvtsList(ml)}`:""; })()}
   ${(()=>{ const as=assortis(code); return as.length?`<div class="sect">À proposer avec</div><div class="list">${as.map(x=>`<button class="row" data-act="product" data-code="${esc(x.p.c)}"><span class="code">${esc(x.p.c)}</span><span class="grow"><span class="t1">${esc(x.p.n)}</span><br><span class="t2">${esc(x.why)} · ${eur(x.p.pv)}${x.p.pt!=null?" · "+nb(x.p.pt)+" pts":""}</span></span><span class="right">${stockPill(x.p.c)}</span></button>`).join("")}</div>`:""; })()}
   ${hist.length?`<div class="sect">Dernières ventes</div><div class="list">${hist.map(v=>{const c=S.clients.get(v.client);return `<div class="row" style="cursor:default"><span class="grow"><span class="t1">${esc(c?clientName(c):v.clientName||"")}</span><br><span class="t2">${fdate(v.date)} · ${nb(v.qty)} × ${eur(v.pu)}</span></span></div>`;}).join("")}</div>`:""}`);
 }
@@ -1110,16 +1112,23 @@ const MVT={"Entrée":["Ajouter au stock","Réception d'une commande Chogan ou co
  "Exposition":["Mettre en exposition","Ces produits restent à toi mais sortent du stock vendable : ils ne seront plus proposés à la vente ni comptés comme disponibles.",["Présentoir salon","Testeur","Vitrine / déco"]],
  "Retour expo":["Retour d'exposition","Le produit redevient vendable et retourne dans ton stock disponible.",["Remis en vente","Correction"]],
  "Fin d'expo":["Fin d'exposition","Le produit d'exposition est terminé : il sort définitivement (vide, abîmé, offert…). Ton stock vendable ne change pas.",["Vide / terminé","Abîmé","Offert","Vendu (prix spécial)"]]};
-function sheetMvt(type, code){
+const isPersoMvt=m=>m&&m.type==="Sortie"&&/perso|famille/i.test(String(m.motif||""));
+const MVT_LBL={"Entrée":"Entrée en stock","Sortie":"Sortie","Exposition":"Mise en exposition","Retour expo":"Retour d'exposition","Fin d'expo":"Fin d'exposition"};
+function sheetMvt(type, code, id){
+  const m=id?S.mvts.get(id):null; if(m){ type=isPersoMvt(m)?"Perso":m.type; code=m.code; }
   const T=MVT[type]||MVT["Sortie"]; const ex=code?(CALC.expo.get(String(code).toUpperCase())||0):0;
-  openSheet(`<div class="sheet-head"><h2 style="margin:0">${T[0]}</h2><button class="x" data-act="close" aria-label="Fermer">×</button></div>
-  <p class="note">${T[1]}${(type==="Retour expo"||type==="Fin d'expo")&&code?" "+ex+" en exposition actuellement.":""}</p>
-  <form id="mform" data-type="${type==="Perso"?"Sortie":type}"><label class="f" for="mf-code">Produit</label><input id="mf-code" class="in" autocomplete="off" placeholder="Code ou nom…" value="${esc(code||"")}"><div id="mf-res"></div>
-  <div class="grid2"><div><label class="f" for="mf-qty">Quantité</label><input id="mf-qty" class="in" type="number" min="1" step="1" value="1" inputmode="numeric"></div><div><label class="f" for="mf-date">Date</label><input id="mf-date" class="in" type="date" value="${today()}"></div></div>
-  <label class="f" for="mf-motif">Motif</label><select id="mf-motif" class="in">${T[2].map(m=>`<option>${m}</option>`).join("")}</select>
-  <label class="f" for="mf-note">Note</label><input id="mf-note" class="in">
-  <button class="btn" style="width:100%;margin-top:14px" type="submit">Enregistrer</button></form>`);
+  const motifs=m&&m.motif&&!T[2].includes(m.motif)?[m.motif,...T[2]]:T[2];
+  openSheet(`<div class="sheet-head"><h2 style="margin:0">${m?"Modifier : ":""}${T[0]}</h2><button class="x" data-act="close" aria-label="Fermer">×</button></div>
+  <p class="note">${m?"Corrige le produit, la quantité, la date ou le motif : le stock est recalculé aussitôt.":T[1]}${!m&&(type==="Retour expo"||type==="Fin d'expo")&&code?" "+ex+" en exposition actuellement.":""}</p>
+  <form id="mform" data-type="${m?esc(m.type):(type==="Perso"?"Sortie":type)}" ${m?`data-id="${esc(id)}"`:""}><label class="f" for="mf-code">Produit</label><input id="mf-code" class="in" autocomplete="off" placeholder="Code ou nom…" value="${esc(code||"")}"><div id="mf-res"></div>
+  <div class="grid2"><div><label class="f" for="mf-qty">Quantité</label><input id="mf-qty" class="in" type="number" min="1" step="1" value="${m?esc(m.qty):1}" inputmode="numeric"></div><div><label class="f" for="mf-date">Date</label><input id="mf-date" class="in" type="date" value="${m?esc(m.date||today()):today()}"></div></div>
+  <label class="f" for="mf-motif">Motif</label><select id="mf-motif" class="in">${motifs.map(x=>`<option ${m&&x===m.motif?"selected":""}>${esc(x)}</option>`).join("")}</select>
+  <label class="f" for="mf-note">Note</label><input id="mf-note" class="in" value="${m?esc(m.note||""):""}">
+  <button class="btn" style="width:100%;margin-top:14px" type="submit">${m?"Enregistrer la correction":"Enregistrer"}</button></form>
+  ${m?`<button class="btn ghost" style="width:100%;margin-top:10px;color:var(--bad)" data-act="delmvt" data-id="${esc(id)}">Supprimer ce mouvement</button>`:""}`);
 }
+function mvtsList(list){ return `<div class="list">${list.map(([id,m])=>{const p=BYCODE.get(String(m.code||"").toUpperCase())||{}; const sign=m.type==="Entrée"||m.type==="Retour expo"?"+":"−";
+  return `<button class="row" data-act="editmvt" data-id="${esc(id)}"><span class="grow"><span class="t1">${isPersoMvt(m)?"Conso perso":esc(MVT_LBL[m.type]||m.type)} · ${sign}${nb(m.qty)}</span><br><span class="t2">${fdate(m.date)}${m.motif?" · "+esc(m.motif):""}${m.note?" · "+esc(m.note):""}</span></span><span class="t2" aria-hidden="true">Modifier ›</span></button>`;}).join("")}</div>`; }
 
 /* ---------- écritures ---------- */
 async function write(path, data, merge=false){
@@ -1199,6 +1208,9 @@ document.addEventListener("click", async e=>{
   if(act==="expoend"){ sheetMvt("Fin d'expo", a.dataset.code); return; }
   if(act==="sortie"){ sheetMvt("Sortie", a.dataset.code); return; }
   if(act==="perso"){ sheetMvt("Perso", a.dataset.code); return; }
+  if(act==="editmvt"){ sheetMvt(null, null, a.dataset.id); return; }
+  if(act==="delmvt"){ const id=a.dataset.id; if(a.dataset.confirm!=="1"){ a.dataset.confirm="1"; a.textContent="Confirmer la suppression"; return; } a.disabled=true;
+    try{ await S.db.doc("mvts/"+id).delete(); closeSheet(); toast("Mouvement supprimé : le stock est recalculé."); }catch(err){ a.disabled=false; toast("Suppression impossible, réessaie."); } return; }
   if(act==="mfpick"){ $("#mf-code").value=a.dataset.code; $("#mf-res").innerHTML=""; return; }
   if(act==="seuil"){ const code=a.dataset.code; const s=S.stock.get(code)||{depart:0};
     openSheet(`<div class="sheet-head"><h2 style="margin:0">Seuil d'alerte · ${esc(code)}</h2><button class="x" data-act="close" aria-label="Fermer">×</button></div><p class="note">Le produit passe en « Stock bas » quand il en reste ce nombre ou moins.</p><form id="sform" data-code="${esc(code)}"><input id="sf-v" class="in" type="number" min="0" step="1" value="${Number(s.seuil)||0}" inputmode="numeric"><button class="btn" style="width:100%;margin-top:12px" type="submit">Enregistrer</button></form>`); return; }
@@ -1422,10 +1434,11 @@ document.addEventListener("submit", async e=>{
       const code=$("#mf-code").value.trim().toUpperCase(); const p=BYCODE.get(code);
       if(!p){ toast("Code inconnu : choisis le produit dans la liste."); btn.disabled=false; return; }
       const qty=parseInt($("#mf-qty").value,10); if(!(qty>0)){ toast("Quantité invalide."); btn.disabled=false; return; }
-      const ty=f.dataset.type; if(ty==="Exposition" && qty>(CALC.avail.get(code)||0)){ toast("Tu n'en as que "+(CALC.avail.get(code)||0)+" en stock disponible."); btn.disabled=false; return; }
+      const ty=f.dataset.id?"":f.dataset.type; if(ty==="Exposition" && qty>(CALC.avail.get(code)||0)){ toast("Tu n'en as que "+(CALC.avail.get(code)||0)+" en stock disponible."); btn.disabled=false; return; }
       if((ty==="Retour expo"||ty==="Fin d'expo") && qty>(CALC.expo.get(code)||0)){ toast("Il n'y en a que "+(CALC.expo.get(code)||0)+" en exposition."); btn.disabled=false; return; }
       if(!S.stock.has(code)) await write("stock/"+code,{depart:0,seuil:0});
       f.dataset.motifSaved=$("#mf-motif").value;
+      if(f.dataset.id){ const old=S.mvts.get(f.dataset.id)||{}; await write("mvts/"+f.dataset.id, {...old, date:$("#mf-date").value, code, qty, motif:$("#mf-motif").value, note:$("#mf-note").value.trim(), modifie:new Date().toISOString()}); closeSheet(); toast("Correction enregistrée : le stock est recalculé."); btn.disabled=false; return; }
       await write("mvts/"+uid("m"), {date:$("#mf-date").value, code, type:f.dataset.type, qty, motif:$("#mf-motif").value, note:$("#mf-note").value.trim(), created:new Date().toISOString()});
       closeSheet(); toast(({"Entrée":"+"+qty+" en stock"+(p.pt&&/commande chogan/i.test(f.dataset.motifSaved||"")?" (+"+nb(Math.round(p.pt*qty*100)/100)+" pts)":"")+" · ","Exposition":qty+" mis en exposition · ","Retour expo":qty+" remis en stock · ","Fin d'expo":qty+" sorti de l'exposition · "}[f.dataset.type]||"−"+qty+" · ")+p.n);
     }
